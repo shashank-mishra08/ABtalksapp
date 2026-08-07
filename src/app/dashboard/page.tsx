@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { formatDateIST, isEnrollmentPreStart } from "@/lib/date-utils";
 import { PreStartDashboard } from "@/components/dashboard/pre-start-dashboard";
 import { prisma } from "@/lib/db";
-import { hackathonRedirectForProfilelessUser } from "@/features/hackathon/registration-status";
+import { hackathonRedirectForProfilelessUser, isUserRegistered } from "@/features/hackathon/registration-status";
 import { Domain } from "@prisma/client";
 import { ClaudeChallengeModal } from "@/components/dashboard/claude-challenge-modal";
 import { getUserActiveEnrollments } from "@/features/enrollment/get-user-enrollments";
@@ -49,7 +49,7 @@ import { PhoneVerifyNudge } from "@/components/dashboard/phone-verify-nudge";
 import { ClaudeFAQ } from "@/components/shared/claude-faq";
 import { DashboardWalkthrough } from "@/components/dashboard/dashboard-walkthrough";
 import { ClaudeDay0SharePrompt } from "@/components/claude/claude-day0-share-prompt";
-import { WorkshopPromoModal } from "@/components/dashboard/workshop-promo-modal";
+import { HackathonPromoModal } from "@/components/dashboard/hackathon-promo-modal";
 
 function readQueryParam(
   query: Record<string, string | string[] | undefined>,
@@ -136,9 +136,10 @@ export default async function DashboardPage({
   const selectedEnrollmentId =
     readQueryParam(query, "challenge") || undefined;
 
-  const [allEnrollments, data] = await Promise.all([
+  const [allEnrollments, data, isHackathonRegistered] = await Promise.all([
     getUserActiveEnrollments(session.user.id),
     getDashboardData(session.user.id, selectedEnrollmentId),
+    isUserRegistered(session.user.id),
   ]);
 
   if (!data.hasUser) {
@@ -226,6 +227,7 @@ export default async function DashboardPage({
           user={headerUser}
           userEnrollments={allEnrollments}
           activeEnrollmentId={dashboardData.enrollment.id}
+          isHackathonRegistered={isHackathonRegistered}
           headerDomain={dashboardData.enrollment.domain}
           domain={dashboardData.profile.domain as Domain}
         />
@@ -264,6 +266,7 @@ export default async function DashboardPage({
           user={headerUser}
           userEnrollments={allEnrollments}
           activeEnrollmentId={dashboardData.enrollment.id}
+          isHackathonRegistered={isHackathonRegistered}
           headerDomain={dashboardData.enrollment.domain}
           domain={dashboardData.profile.domain as Domain}
         />
@@ -285,7 +288,7 @@ export default async function DashboardPage({
             cleanPath={dashboardPathWithoutToast}
           />
         ) : null}
-        <WorkshopPromoModal />
+        <HackathonPromoModal />
         <div className="relative z-10 flex-1">
         <PreStartDashboard
           enrollment={{
@@ -330,6 +333,7 @@ export default async function DashboardPage({
         user={headerUser}
         userEnrollments={allEnrollments}
         activeEnrollmentId={dashboardData.enrollment.id}
+        isHackathonRegistered={isHackathonRegistered}
         headerDomain={dashboardData.enrollment.domain}
         domain={dashboardData.profile.domain as Domain}
       />
@@ -345,7 +349,7 @@ export default async function DashboardPage({
       {showClaudeModal && claudeModalStartsAt ? (
         <ClaudeChallengeModal startsAt={claudeModalStartsAt} />
       ) : null}
-      <WorkshopPromoModal />
+      <HackathonPromoModal />
       {hasClaudeEnrollment ? (
         <ClaudeDay0SharePrompt hasDay1Submission={hasClaudeDay1Submission} />
       ) : null}

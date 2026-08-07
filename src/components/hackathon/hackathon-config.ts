@@ -1,6 +1,7 @@
 export const HACKATHON = {
   name: "ABTalks Vibe Code Hackathon",
   tagline: "48 hours. No boilerplate. Just you, your ideas, and AI.",
+  // Manual kill switch (cutover / emergency). Time gate is registrationClosesUtc.
   registrationOpen: true,
   maxTeamSize: 3,
 
@@ -10,7 +11,10 @@ export const HACKATHON = {
   kickoffLabel: "Friday, 7 Aug · 8:00 PM IST",
   deadlineLabel: "Sunday, 9 Aug · 8:00 PM IST",
   resultsLabel: "Winners announced: Friday, 14 Aug",
-  registrationClosesLabel: "Registration closes Thursday, 6 Aug · 11:59 PM IST",
+  // Open while now < this instant (Fri 7 Aug 6:00 PM IST).
+  registrationClosesUtc: "2026-08-07T12:30:00Z",
+  registrationClosesLabel: "Registration closes Friday, 7 Aug · 6:00 PM IST",
+  briefsHeading: "Problem Statements",
 
   // Leaders can edit the roster (remove a teammate) up to and including
   // Tue 4 Aug IST — 3 days before kickoff. This instant is 5 Aug 00:00 IST, so
@@ -18,8 +22,42 @@ export const HACKATHON = {
   rosterLockUtc: "2026-08-04T18:30:00Z", // Tue 4 Aug 11:59 PM IST (= 5 Aug 00:00 IST)
   rosterLockLabel: "Tuesday, 4 Aug · 11:59 PM IST",
 
-  whatsappLink: "https://chat.whatsapp.com/LqTfjJa5mZAIsk4VoW5Epv?s=cl&p=a&ilr=1",
+  whatsappLink: "https://chat.whatsapp.com/FOfHNBfoNbw473EHo3FyOS?s=cl&p=a&ilr=1",
   prizes: [] as { place: string; reward: string }[], // empty ⇒ "announced soon" state
+
+  // TODO(organizer): paste the real Breeth redeem URL before kickoff.
+  // Breeth supplied two capped links: 5,000 redemptions and 3,000 redemptions.
+  // Ship the 5k link. If it exhausts mid-event, swap this one value to the 3k
+  // link — no other file changes.
+  // Reserve (3k): "PASTE_3K_LINK_HERE"
+  sponsor: {
+    name: "Breeth",
+    kicker: "Sponsor",
+    heading: "Your apps get memory",
+    blurb:
+      "Breeth is a memory layer for AI agents. Your app writes what happened, and it remembers — across sessions, across users, across the whole weekend. Every participant gets Breeth Pro, free.",
+    capabilities: [
+      {
+        title: "Persistent memory, no infra",
+        body: "One API call to save, one to search. No embeddings, no vector database, no retrieval pipeline to build in 48 hours.",
+      },
+      {
+        title: "Plugs into Claude Code and Cursor",
+        body: "Breeth ships an MCP server, so your AI assistant can read and write project memory while it codes for you.",
+      },
+      {
+        title: "Remembers why, not just what",
+        body: "Facts carry the reasoning behind them, and old beliefs fade as they're contradicted. Build things that notice when a user changes their mind.",
+      },
+    ],
+    siteUrl: "https://thebreeth.com",
+    docsUrl: "https://docs.thebreeth.com",
+    redeemUrl: "https://www.thebreeth.com/event/abtalks-vibe-code-hackathon-breeth-ai-memory",
+    redeemLabel: "Claim your Breeth Pro access",
+    // TODO(organizer): confirm reward with Breeth before announcing.
+    prizeTitle: "Best use of Breeth",
+    prizeReward: "Sponsor track prize: reward announced soon.",
+  },
 
   steps: [
     {
@@ -135,3 +173,9 @@ export const HACKATHON = {
     },
   ],
 } as const;
+
+/** Open when the kill switch is on and now is before registrationClosesUtc. */
+export function isHackathonRegistrationOpen(now: number = Date.now()): boolean {
+  if (!HACKATHON.registrationOpen) return false;
+  return now < new Date(HACKATHON.registrationClosesUtc).getTime();
+}
