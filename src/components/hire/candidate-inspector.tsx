@@ -29,6 +29,8 @@ import {
   rememberEvidence,
 } from "@/components/hire/evidence-cache";
 import { ShortlistButton } from "@/components/talent/shortlist-button";
+import { PanelResizer } from "@/components/hire/panel-resizer";
+import { EvidenceResumeBody } from "@/components/hire/evidence-resume";
 import { HireScoreChart } from "@/components/hire/hire-score-chart";
 import {
   buildCardPills,
@@ -74,6 +76,7 @@ const TABS = [
   { id: "experience", label: "Experience" },
   { id: "education", label: "Education" },
   { id: "skills", label: "Skills" },
+  { id: "resume", label: "Resume" },
   { id: "more", label: "More" },
 ] as const;
 
@@ -267,6 +270,9 @@ export function CandidateInspector({
 
   return (
     <aside className="hire-detail hire-profile" aria-label="Candidate details">
+      {/* Outside the scroll container so it stays on the seam as the panel
+          scrolls. */}
+      <PanelResizer />
       <div ref={scrollRef} className="hire-detail__scroll">
         <div className="hire-profile__controls">
           <div className="hire-profile__history">
@@ -380,15 +386,17 @@ export function CandidateInspector({
               jobRole={match.jobRole}
               match={match}
             />
-            {/* The resume is gated: this opens the plan dialog, not the file.
-                The evidence profile stays one click away behind "•••". */}
+            {/* For a locked preview this still opens the plan dialog. For a
+                readable candidate the resume is now a section of this panel,
+                so the button scrolls to it instead of gating it. "•••" remains
+                the way to the full page. */}
             <button
               type="button"
               className="hire-profile__view"
-              aria-label="View resume"
+              aria-label={preview ? "View resume" : "Go to resume"}
               title="Resume"
-              aria-haspopup="dialog"
-              onClick={() => setGate("resume")}
+              aria-haspopup={preview ? "dialog" : undefined}
+              onClick={() => (preview ? setGate("resume") : jump("resume"))}
             >
               <Eye size={16} strokeWidth={1} absoluteStrokeWidth aria-hidden="true" />
             </button>
@@ -396,7 +404,9 @@ export function CandidateInspector({
         )}
 
         <nav className="hire-profile__tabs" aria-label="Profile sections">
-          {TABS.map((t) => (
+          {/* A sample card has no evidence record, so it has no resume section
+              to jump to — drop the tab rather than leave it inert. */}
+          {TABS.filter((t) => t.id !== "resume" || !sample).map((t) => (
             <button
               key={t.id}
               type="button"
@@ -601,6 +611,23 @@ export function CandidateInspector({
             )}
           </div>
         </section>
+
+        {!sample && (
+          <section
+            data-section="resume"
+            className="hire-profile__section hire-profile__section--ruled"
+            aria-label="Resume"
+          >
+            <h4 className="hire-profile__h">Resume</h4>
+            {/* The same record as /hire/evidence, rendered here so the
+                recruiter never leaves the results to read it. The identity
+                header is suppressed: the panel already shows the name and
+                score above. */}
+            <div className="hire-sheet hire-sheet--embed">
+              <EvidenceResumeBody match={match} showIdentity={false} />
+            </div>
+          </section>
+        )}
 
         <section
           data-section="more"
