@@ -9,6 +9,7 @@ import {
   RECRUITER_FIELD_POLICY,
   searchableUserWhere,
   type RecruiterPublicIdentity,
+  type RecruiterSkill,
 } from "@/repositories/talent";
 
 /**
@@ -60,6 +61,10 @@ function identityFromLegacyProfile(p: {
     education: null,
     university: p?.college ?? null,
     skills: p?.skills ?? [],
+    // T-241: the legacy row carries names only and no completion history, so
+    // every skill on this path is self-declared. That is the honest answer,
+    // not a gap — and it costs nobody a place in the results.
+    labelledSkills: (p?.skills ?? []).map((name) => ({ name, sources: [] })),
     hasLinkedin: RECRUITER_FIELD_POLICY.linkedin && Boolean(p?.linkedinUrl),
     hasGithub: RECRUITER_FIELD_POLICY.github && Boolean(p?.githubUsername),
     hasResume: RECRUITER_FIELD_POLICY.resume && Boolean(p?.resumeUrl),
@@ -133,6 +138,11 @@ export type ProgramCandidateRow = Prisma.ProgramMemberGetPayload<{
   hasLinkedin: boolean;
   hasGithub: boolean;
   hasResume: boolean;
+  /**
+   * T-241 labels for `skills`, same names and order. Legacy `ProgramMember`
+   * rows carry names only, so on that path every entry is self-declared.
+   */
+  labelledSkills: RecruiterSkill[];
 };
 
 /** Legacy read path. Same {@link RECRUITER_FIELD_POLICY} as the new path. */
@@ -142,6 +152,8 @@ function withLegacyLinkFlags(
 ): ProgramCandidateRow {
   return {
     ...row,
+    // Legacy path: names only, no completion history — all self-declared.
+    labelledSkills: row.skills.map((name) => ({ name, sources: [] })),
     company: RECRUITER_FIELD_POLICY.currentEmployer ? row.company : null,
     interview: RECRUITER_FIELD_POLICY.interviewResults ? row.interview : null,
     hasLinkedin: RECRUITER_FIELD_POLICY.linkedin && Boolean(extras?.linkedinUrl),
@@ -190,6 +202,12 @@ export async function listProgramCandidates(
         university: idn?.university ?? r.university,
         graduationYear: idn?.graduationYear ?? r.graduationYear,
         skills: idn?.skills.length ? idn.skills : r.skills,
+        // Labels follow whichever list won above, so the two can never describe
+        // different skills. The legacy fallback has no completion history
+        // attached, hence self-declared throughout.
+        labelledSkills: idn?.skills.length
+          ? idn.labelledSkills
+          : r.skills.map((name) => ({ name, sources: [] })),
         updatedAt: r.updatedAt,
         cohort: r.cohort,
         commitDays: r.commitDays,

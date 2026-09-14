@@ -35,6 +35,28 @@ function strList(value: unknown): string[] | undefined {
   return items.length ? items : undefined;
 }
 
+/**
+ * T-241 skill labels, rebuilt field by field.
+ *
+ * Only `name` and `sources` survive; any other key on a stored object is
+ * dropped rather than spread, which is what keeps this a whitelist. A row with
+ * no usable name is skipped entirely — never rendered as a blank chip.
+ */
+function labelledSkillList(
+  value: unknown,
+): { name: string; sources: string[] }[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items: { name: string; sources: string[] }[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const row = raw as Record<string, unknown>;
+    const name = typeof row.name === "string" ? row.name.trim() : "";
+    if (!name) continue;
+    items.push({ name, sources: strList(row.sources) ?? [] });
+  }
+  return items.length ? items : undefined;
+}
+
 /** The seven dimension scores. Drops weights and anything else on the blob. */
 export function pickPublicScores(raw: unknown): PublicScoreSlice | undefined {
   if (!raw || typeof raw !== "object") return undefined;
@@ -64,6 +86,14 @@ export function pickPublicEvidence(raw: unknown): MatchCardData["evidence"] {
   const out: MatchCardData["evidence"] = {};
   const skills = strList(e.skills);
   if (skills) out.skills = skills;
+  // T-241. Parsed defensively because this also reads BACK stored match blobs
+  // written before the label existed, where the key is simply absent.
+  //
+  // `sources` holds PROGRAM titles only. It is re-derived from the whitelist on
+  // every read, so a blob that somehow carried an employer string could not
+  // smuggle it out through here — the shape below admits names and nothing else.
+  const labelled = labelledSkillList(e.labelledSkills);
+  if (labelled) out.labelledSkills = labelled;
   if (typeof e.missionPoints === "number") out.missionPoints = e.missionPoints;
   if (typeof e.missionsPassed === "number") out.missionsPassed = e.missionsPassed;
   if (typeof e.missionsAttempted === "number") {
@@ -214,6 +244,7 @@ export function toPublicMatch(
       : undefined,
     evidence: {
       skills: match.evidence.skills,
+      labelledSkills: match.evidence.labelledSkills,
       missionPoints: match.evidence.missionPoints,
       missionsPassed: match.evidence.missionsPassed,
       missionsAttempted: match.evidence.missionsAttempted,

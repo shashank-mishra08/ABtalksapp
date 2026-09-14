@@ -8,6 +8,7 @@ import { candidatePublicId } from "@/features/hire/public-id";
 import { tidyRoleLabel } from "@/features/hire/role-family";
 import { splitSkills } from "@/features/hire/challenge-dossier";
 import type { CandidateDossier, EvidenceCoverage } from "@/features/hire/types";
+import { labelSkillNames } from "@/features/hire/verified-skills";
 
 /**
  * Candidates who are searchable because their PROFILE is usable — and for no
@@ -84,6 +85,7 @@ export async function buildProfileDossierSet(
         gradYear: p.graduationYear ?? null,
       }),
       declaredSkills: declared(skills),
+      labelledSkills: labelSkillNames(skills, p.labelledSkills),
       // Booleans only. The addresses are contact data and never leave the server.
       links: declared({
         linkedin: p.hasLinkedin,

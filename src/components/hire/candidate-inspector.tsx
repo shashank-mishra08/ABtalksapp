@@ -37,6 +37,11 @@ import {
   OpenToWorkBadge,
 } from "@/components/hire/hire-card-facts";
 import type { MatchCardData, MatchDecision } from "@/components/hire/match-card";
+import {
+  SELF_DECLARED_TITLE,
+  backedTitle,
+  skillSourceLookup,
+} from "@/components/hire/match-card";
 import { cn } from "@/lib/utils";
 import { MaskedName } from "@/components/hire/desk-match-card";
 import { UnlockContactDialog } from "@/components/hire/unlock-contact-dialog";
@@ -238,6 +243,11 @@ export function CandidateInspector({
   const isChallenge = match.source === "CLAUDE" || match.source === "CHALLENGE_60";
   const totalDays = e.totalTrackDays;
   const skills = e.skills ?? [];
+  // T-241. Split for display only — every skill still appears, in the same
+  // order, under one heading or the other.
+  const sourcesFor = skillSourceLookup(e.labelledSkills);
+  const backedSkills = skills.filter((s) => sourcesFor(s).length > 0);
+  const declaredSkills = skills.filter((s) => sourcesFor(s).length === 0);
   const languages = e.workingLanguages ?? [];
   const missions =
     typeof e.missionsPassed === "number"
@@ -969,22 +979,55 @@ export function CandidateInspector({
 
           <div data-section="skills" className="hire-profile__block">
             <h4 className="hire-profile__h">Skill Map</h4>
-            {skills.length > 0 ? (
+            {/* T-241: the panel has room to NAME the source in text rather than
+                only in a tooltip, which is what TC-R-021 asks for. The backed
+                group is listed first because it is the stronger signal. */}
+            {backedSkills.length > 0 && (
+              <div className="hire-profile__group">
+                <p className="hire-profile__group-h">
+                  Evidence-backed by ABTalks
+                </p>
+                <ul className="hire-profile__chips">
+                  {backedSkills.map((s) => {
+                    const sources = sourcesFor(s);
+                    return (
+                      <li
+                        key={s}
+                        className="hire-profile__chip"
+                        title={backedTitle(sources)}
+                      >
+                        {s}
+                        <span className="opacity-70"> · {sources.join(", ")}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            {declaredSkills.length > 0 ? (
               <div className="hire-profile__group">
                 <p className="hire-profile__group-h">Declared by the candidate</p>
                 <ul className="hire-profile__chips">
-                  {skills.slice(0, 10).map((s) => (
-                    <li key={s} className="hire-profile__chip">
+                  {declaredSkills.slice(0, 10).map((s) => (
+                    <li
+                      key={s}
+                      className="hire-profile__chip"
+                      title={SELF_DECLARED_TITLE}
+                    >
                       {s}
                     </li>
                   ))}
-                  {skills.length > 10 && (
-                    <li className="hire-profile__count">+{skills.length - 10}</li>
+                  {declaredSkills.length > 10 && (
+                    <li className="hire-profile__count">
+                      +{declaredSkills.length - 10}
+                    </li>
                   )}
                 </ul>
               </div>
             ) : (
-              <p className="hire-profile__meta">No skills declared.</p>
+              backedSkills.length === 0 && (
+                <p className="hire-profile__meta">No skills declared.</p>
+              )
             )}
             {languages.length > 0 && (
               <div className="hire-profile__group">

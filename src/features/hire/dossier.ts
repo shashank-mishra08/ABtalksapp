@@ -23,6 +23,7 @@ import type {
 } from "@/features/hire/types";
 import { PROGRAM_TOTAL_DAYS } from "@/features/program/constants";
 import { getCohortCalendarDay } from "@/features/program/progression";
+import { labelSkillNames } from "@/features/hire/verified-skills";
 
 /**
  * The identifying fields a dossier deliberately refuses to carry.
@@ -307,6 +308,7 @@ export async function buildDossierSet(
         gradYear: m.graduationYear,
       }),
       declaredSkills: declared(m.skills),
+      labelledSkills: labelSkillNames(m.skills, m.labelledSkills),
       links: declared({
         linkedin: Boolean(m.hasLinkedin),
         github: Boolean(m.hasGithub),

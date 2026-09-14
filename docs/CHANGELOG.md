@@ -45,6 +45,7 @@
 - 2026-08-10 — `/` now renders the landing hub for signed-in users too (no more redirect to /dashboard); track cards show "Open dashboard" per-track via `features/landing/get-landing-state.ts`; `/login` bounces signed-in users to `/` instead of `/dashboard`.
 
 ## Pending reconcile
+- 2026-09-14 [rule] T-241 recruiter-visible skills are labelled self-declared or evidence-backed, derived from curriculum+completion (repositories/verified-skills.ts, the /profile rule set-based) — NOT from CandidateSkill.verified, which is uniformly false while emitSkillEvidence stays a T-146 stub; evidence is a tie-break in rankCandidates after score and before name, never a filter, and scoreCandidate's dims/weights/total/tier are unchanged.
 - 2026-09-12 [convention] Hub search is global except /hire; placeholder Search ABTalks.
 - 2026-09-12 [convention] Scout inspector Experience is CandidateExperience (typed or resume-merged); Claude/Platform track proof moved to ABTalks Evidence.
 - 2026-09-12 [rule] Recruiter can open the Scout inspector on owned-job applicants (PROFILE ref); unlock/message reuse T-229/T-232 with owned-application as a second addressability check — email/phone stay off the list and card payload.

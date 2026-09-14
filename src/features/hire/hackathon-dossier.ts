@@ -8,6 +8,7 @@ import { candidatePublicId } from "@/features/hire/public-id";
 import { tidyRoleLabel } from "@/features/hire/role-family";
 import { splitSkills } from "@/features/hire/challenge-dossier";
 import type { CandidateDossier, EvidenceCoverage } from "@/features/hire/types";
+import { labelSkillNames } from "@/features/hire/verified-skills";
 
 export type HackathonDossierSet = {
   dossiers: CandidateDossier[];
@@ -69,6 +70,7 @@ export async function buildHackathonDossierSet(): Promise<HackathonDossierSet> {
         gradYear: p.graduationYear ?? null,
       }),
       declaredSkills: declared(skills),
+      labelledSkills: labelSkillNames(skills, p.labelledSkills),
       links: declared({
         linkedin: p.hasLinkedin,
         github: p.hasGithub,

@@ -3,6 +3,10 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isNewTalentRepoEnabled } from "@/lib/feature-flags";
 import { programMember } from "@/repositories/legacy/program-member";
+import {
+  listVerifiedSkillsForUsers,
+  verifiedSkillsFor,
+} from "@/repositories/verified-skills";
 import type {
   CandidateSearchFilters,
   RecruiterContext,
@@ -70,6 +74,20 @@ export const RECRUITER_FIELD_POLICY: RecruiterFieldPolicy = Object.freeze({
   currentEmployer: true,
 });
 
+/**
+ * One skill as a recruiter sees it (T-241 / TC-R-021).
+ *
+ * `sources` is non-empty exactly when the skill is evidence-backed, and holds
+ * the PROGRAM titles that earned it ("60-Day Claude AI Mastery Challenge").
+ * Program names only — an employer name never reaches this type; identity waits
+ * on an accepted introduction.
+ */
+export type RecruiterSkill = {
+  name: string;
+  /** Empty = self-declared. Non-empty = evidence-backed, and names the source. */
+  sources: string[];
+};
+
 /** Recruiter-safe identity. No email, phone, or resume URL. */
 export type RecruiterPublicIdentity = {
   fullName: string;
@@ -78,7 +96,14 @@ export type RecruiterPublicIdentity = {
   graduationYear: number | null;
   education: string | null;
   university: string | null;
+  /**
+   * Every skill the candidate claims, names only — unchanged, and still the
+   * input to stack matching. Labelling must never change WHO matches a search,
+   * so this list stays exactly as wide as it was (T-241: evidence never filters).
+   */
   skills: string[];
+  /** The same skills, carrying their label. Same length, same order as `skills`. */
+  labelledSkills: RecruiterSkill[];
   hasLinkedin: boolean;
   hasGithub: boolean;
   hasResume: boolean;
@@ -129,9 +154,17 @@ export async function loadRecruiterIdentities(
   ]);
   const resumeSet = new Set(withResume.map((r) => r.userId));
 
+  // T-241: which of these skills the platform can vouch for, and which program
+  // earned it. One set-based read for the whole page — never per candidate.
+  // A candidate with no completed program is simply absent from the map, which
+  // reads as "all self-declared"; nobody is dropped for being absent.
+  const verified = await listVerifiedSkillsForUsers(ids);
+
   for (const p of profiles) {
     const months = p.experience.reduce((sum, e) => sum + (e.totalMonths ?? 0), 0);
     const edu = p.education[0];
+    const names = p.skills.map((s) => s.skill.name).filter(Boolean);
+    const backed = verifiedSkillsFor(verified, p.userId);
     out.set(p.userId, {
       fullName: p.fullName,
       role: p.headline,
@@ -139,7 +172,14 @@ export async function loadRecruiterIdentities(
       graduationYear: edu?.graduationYear ?? null,
       education: edu?.degree ?? null,
       university: edu?.institutionName ?? null,
-      skills: p.skills.map((s) => s.skill.name).filter(Boolean),
+      skills: names,
+      // Same list, same order — a label only. Deriving it here rather than
+      // filtering means the skill set the scorer sees is byte-identical to
+      // what it saw before T-241.
+      labelledSkills: names.map((name) => ({
+        name,
+        sources: backed.get(name.trim().toLowerCase()) ?? [],
+      })),
       hasLinkedin: RECRUITER_FIELD_POLICY.linkedin && Boolean(p.linkedinUrl),
       hasGithub: RECRUITER_FIELD_POLICY.github && Boolean(p.githubUsername),
       hasResume: RECRUITER_FIELD_POLICY.resume && resumeSet.has(p.userId),

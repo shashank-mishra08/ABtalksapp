@@ -17,6 +17,7 @@ import {
 import { candidatePublicId } from "@/features/hire/public-id";
 import { roleFamilyFor, tidyRoleLabel, type RoleFamily } from "@/features/hire/role-family";
 import type { CandidateDossier, EvidenceCoverage } from "@/features/hire/types";
+import { labelSkillNames } from "@/features/hire/verified-skills";
 
 /**
  * The 60-day challenge cohort, assembled into the same dossier the program
@@ -283,6 +284,7 @@ export async function buildChallengeDossierSet(opts: {
         gradYear: p.graduationYear ?? null,
       }),
       declaredSkills: declared(skills),
+      labelledSkills: labelSkillNames(skills, p.labelledSkills),
       links: declared({
         linkedin: p.hasLinkedin,
         github: p.hasGithub,

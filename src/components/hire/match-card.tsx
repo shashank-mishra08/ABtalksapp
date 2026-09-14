@@ -90,6 +90,13 @@ export type MatchCardData = {
   scores?: PublicScoreSlice;
   evidence: {
     skills?: string[];
+    /**
+     * T-241: the same skills, labelled. `sources` empty = self-declared;
+     * non-empty = evidence-backed, naming the programs that earned it.
+     * Absent on a match stored before the label existed — the card then falls
+     * back to showing every skill as self-declared, which is what it always was.
+     */
+    labelledSkills?: { name: string; sources: string[] }[];
     missionPoints?: number;
     /** Missions passed by doing them — excludes the days waived at enrolment.
      *  Prefer this over missionPoints everywhere it is present. */
@@ -178,6 +185,31 @@ function orderedSkills(skills: string[], needles: string[]): string[] {
   return [...hit, ...rest];
 }
 
+/**
+ * T-241: skill name → the programs that earned it. Empty array = self-declared.
+ *
+ * Built as a lookup rather than replacing the skill list, so the ORDER and the
+ * CONTENTS of what the card shows are exactly what they were before the label
+ * existed. Labelling changes how a skill reads, never which skills appear.
+ */
+export function skillSourceLookup(
+  labelled: { name: string; sources: string[] }[] | undefined,
+): (skill: string) => string[] {
+  if (!labelled?.length) return () => [];
+  const byName = new Map(
+    labelled.map((s) => [s.name.trim().toLowerCase(), s.sources]),
+  );
+  return (skill) => byName.get(skill.trim().toLowerCase()) ?? [];
+}
+
+/** The tooltip on an evidence-backed chip — it must NAME the source (TC-R-021). */
+export function backedTitle(sources: string[]): string {
+  return `Evidence-backed — earned on ${sources.join(", ")}.`;
+}
+
+export const SELF_DECLARED_TITLE =
+  "Self-declared — the candidate added this themselves.";
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -238,6 +270,10 @@ function RealMatchCard({
   const isHackathon = track.kind === "hackathon";
   const needles = match.highlightSkills ?? [];
   const skills = orderedSkills(e.skills ?? [], needles);
+  const sourcesFor = skillSourceLookup(e.labelledSkills);
+  // Drives the disclosure below. When nothing is backed the original wording
+  // stands, because it is then still true.
+  const anyBackedSkill = skills.some((s) => sourcesFor(s).length > 0);
   const totalDays = e.totalTrackDays ?? track.totalDays;
   // The same number means different work on the two tracks, so it is never
   // labelled the same way. A cohort mission is graded on submission; a challenge
@@ -384,15 +420,29 @@ function RealMatchCard({
         )}
         {skills.slice(0, SKILL_PILL_CAP).map((s) => {
           const hit = skillHighlighted(s, needles);
+          // T-241: an evidence-backed skill wears the same green the other
+          // platform-verified chips above already use, so "the platform saw
+          // this" reads the same way everywhere on the card. A self-declared
+          // skill keeps the outline it has always had.
+          const sources = sourcesFor(s);
+          const isBacked = sources.length > 0;
           return (
             <li
               key={s}
               className={
-                hit
-                  ? "rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary"
-                  : "rounded-full border px-2 py-0.5"
+                isBacked
+                  ? "rounded-full bg-[#18D39B]/10 px-2 py-0.5 font-medium text-[#197E23] dark:text-[#D6F7EC]"
+                  : hit
+                    ? "rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary"
+                    : "rounded-full border px-2 py-0.5"
               }
-              title={hit ? "Matches the stack you asked for." : undefined}
+              title={
+                isBacked
+                  ? backedTitle(sources)
+                  : hit
+                    ? `${SELF_DECLARED_TITLE} Matches the stack you asked for.`
+                    : SELF_DECLARED_TITLE
+              }
             >
               {s}
             </li>
@@ -564,12 +614,21 @@ function RealMatchCard({
             <Stat label="Reference" value={publicId} />
           </dl>
 
+          {/* T-241: this used to assert that every skill was self-declared. That
+              is still printed when it is still true, but a card carrying a
+              backed skill must not contradict its own chips. */}
           <p className="text-sm leading-relaxed text-muted-foreground">
             {isHackathon
-              ? "Shipped a hackathon project the platform recorded. Skills and role are self-declared — there is no daily track behind this card."
+              ? anyBackedSkill
+                ? "Shipped a hackathon project the platform recorded. Role is self-declared; each skill below is labelled self-declared or evidence-backed."
+                : "Shipped a hackathon project the platform recorded. Skills and role are self-declared — there is no daily track behind this card."
               : isChallenge
-                ? "Days shipped, streak, assessment scores and the certificate are verified by ABTalks — every day was submitted against a GitHub URL recorded at the time. Experience and skills are self-declared."
-                : "Mission, first-attempt, commit and project figures are verified by ABTalks. Experience, skills and role are self-declared."}
+                ? anyBackedSkill
+                  ? "Days shipped, streak, assessment scores and the certificate are verified by ABTalks — every day was submitted against a GitHub URL recorded at the time. Experience is self-declared; each skill below is labelled self-declared or evidence-backed."
+                  : "Days shipped, streak, assessment scores and the certificate are verified by ABTalks — every day was submitted against a GitHub URL recorded at the time. Experience and skills are self-declared."
+                : anyBackedSkill
+                  ? "Mission, first-attempt, commit and project figures are verified by ABTalks. Experience and role are self-declared; each skill below is labelled self-declared or evidence-backed."
+                  : "Mission, first-attempt, commit and project figures are verified by ABTalks. Experience, skills and role are self-declared."}
             {match.compensationBand ? ` ${COMPENSATION_DISCLAIMER}` : ""}
           </p>
 
@@ -584,21 +643,34 @@ function RealMatchCard({
           {skills.length > 0 && (
             <div>
               <p className="text-sm tracking-wide text-muted-foreground uppercase">
-                Skills — declared by the candidate
+                Skills
               </p>
+              {/* T-241: the heading no longer speaks for the whole list, because
+                  the list is no longer all one thing. Each chip says which it
+                  is, and an evidence-backed one names what earned it. */}
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {skills.map((s) => {
                   const hit = skillHighlighted(s, needles);
+                  const sources = sourcesFor(s);
+                  const isBacked = sources.length > 0;
                   return (
                     <span
                       key={s}
                       className={
-                        hit
-                          ? "rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary"
-                          : "rounded-full border px-2 py-0.5 text-sm"
+                        isBacked
+                          ? "rounded-full bg-[#18D39B]/10 px-2 py-0.5 text-sm font-medium text-[#197E23] dark:text-[#D6F7EC]"
+                          : hit
+                            ? "rounded-full bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary"
+                            : "rounded-full border px-2 py-0.5 text-sm"
                       }
+                      title={isBacked ? backedTitle(sources) : SELF_DECLARED_TITLE}
                     >
                       {s}
+                      {isBacked && (
+                        <span className="ml-1 font-normal opacity-80">
+                          · {sources.join(", ")}
+                        </span>
+                      )}
                     </span>
                   );
                 })}

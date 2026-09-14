@@ -2,6 +2,7 @@ import type { CandidateSource } from "@/features/hire/candidate-ref";
 import type { CompensationBand } from "@/features/hire/compensation";
 import type { Fact } from "@/features/hire/dossier-provenance";
 import type { RoleFamily } from "@/features/hire/role-family";
+import type { RecruiterSkill } from "@/repositories/talent";
 import type { JobSpec } from "@/lib/validations/hire";
 
 export type { JobSpec, CandidateSource };
@@ -94,6 +95,13 @@ export type CandidateDossier = {
     gradYear: number | null;
   }>;
   declaredSkills: Fact<string[]>;
+  /**
+   * T-241: `declaredSkills` labelled. Not a `Fact` because provenance is
+   * PER SKILL here — that is the whole point — and a single wrapper could only
+   * assert one provenance for the lot, which is the conflation being removed.
+   * Same names, same order as `declaredSkills.value`.
+   */
+  labelledSkills: RecruiterSkill[];
   /** Booleans, never URLs — "has a GitHub" is a signal, the address is contact
    *  data. */
   links: Fact<{ linkedin: boolean; github: boolean; resume: boolean }>;
@@ -150,6 +158,15 @@ export type CandidateDossier = {
 
 export type CandidateEvidence = {
   skills: string[];
+  /**
+   * T-241: the same skills, each labelled self-declared (`sources` empty) or
+   * evidence-backed (`sources` names the programs that earned it).
+   *
+   * Optional because it is a LABEL, never a gate: a track or a legacy row that
+   * cannot produce it still produces every skill above, and the candidate is
+   * shown and matched exactly as before. Absent reads as "all self-declared".
+   */
+  labelledSkills?: RecruiterSkill[];
   yearsExperience: number;
   missionPoints: number;
   /** Earned passes. `missionPoints` includes the waived start days; this does
@@ -206,6 +223,8 @@ export type ScoreableMember = {
   company: string;
   yearsExperience: number;
   skills: string[];
+  /** T-241 labels, carried beside `skills`. See `CandidateEvidence`. */
+  labelledSkills?: RecruiterSkill[];
   missionPoints: number;
   cleanPassCount: number;
   totalScore: number;

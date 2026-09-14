@@ -518,9 +518,24 @@ export function scoreCandidate(
   };
 }
 
+/**
+ * How many of a candidate's skills the platform can vouch for (T-241).
+ *
+ * Read for ORDERING ONLY — it is not a dimension, carries no weight, and never
+ * reaches `total` or `tierFor`. A candidate with zero here scores exactly what
+ * they scored before T-241 and appears exactly where they appeared; they are
+ * only placed below an equally-scoring candidate who has evidence.
+ */
+function evidenceBacked(
+  labelled: readonly { sources: string[] }[] | undefined,
+): number {
+  return (labelled ?? []).filter((s) => s.sources.length > 0).length;
+}
+
 function toEvidence(member: ScoreableMember) {
   return {
     skills: member.skills,
+    labelledSkills: member.labelledSkills,
     yearsExperience: member.yearsExperience,
     missionPoints: member.missionPoints,
     missionsPassed: member.missionsPassed,
@@ -555,9 +570,23 @@ export function rankCandidates(
   // Name is the tiebreak where there is one. Candidates outside the program
   // carry no name by design, so their ties fall back to the handle — arbitrary,
   // but stable, which is what a tiebreak is for.
+  // T-241 / TC-R-021: among candidates who are OTHERWISE COMPARABLE, the one
+  // with more evidence-backed skills ranks higher.
+  //
+  // It sits after `score` and before the name, which is what makes it a
+  // tie-break rather than a ranking input: a higher-scoring candidate with no
+  // evidence still outranks a lower-scoring one who has it, `score` is never
+  // touched, and nothing is removed from `list` — so no unexplained component
+  // appears in a score, and a candidate with zero evidence still appears.
+  // Same shape as the evidence floor in track-loaders.ts: a preference, not a
+  // wall.
+  const backed = new Map(
+    list.map((c) => [c.candidateRef, evidenceBacked(c.evidence.labelledSkills)]),
+  );
   list.sort(
     (a, b) =>
       b.score - a.score ||
+      (backed.get(b.candidateRef) ?? 0) - (backed.get(a.candidateRef) ?? 0) ||
       (a.fullName || a.candidateRef).localeCompare(
         b.fullName || b.candidateRef,
       ),
