@@ -28,7 +28,7 @@ page with two tabs: **Platform** (ABTalks) and **Recruiter**.
 @default(RECRUITER)`; `deadlineAt`; `audienceAll`, `audienceDomains Domain[]`,
 `audienceWorkshopEventIds String[]`; index `(source, updatedAt desc)`;
 CHECK constraint: PLATFORM ⇔ organizationId IS NULL.
-`AssessmentEndReason` + `DEADLINE`. Additive; existing rows become RECRUITER.
+`AssessmentEndReason` + `DEADLINE`. Additive; existing rows become  RECRUITER.
 
 Recruiter isolation: every recruiter read already filters on
 `organizationId`, which a platform row never has. The platform store pins
