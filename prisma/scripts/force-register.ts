@@ -71,7 +71,7 @@ async function main() {
       status: true,
       registerRequested: true,
       lastError: true,
-      userId: true,
+      registeredUserId: true,
     },
   });
 
@@ -82,7 +82,7 @@ async function main() {
     );
 
     if (imp.status === "REGISTERED") {
-      console.log(`  ✓ Already REGISTERED (userId: ${imp.userId})`);
+      console.log(`  ✓ Already REGISTERED (userId: ${imp.registeredUserId})`);
       continue;
     }
 
@@ -92,9 +92,9 @@ async function main() {
 
       const updated = await prisma.resumeImport.findUnique({
         where: { id: imp.id },
-        select: { status: true, userId: true, lastError: true },
+        select: { status: true, registeredUserId: true, lastError: true },
       });
-      console.log(`  Updated status: ${updated?.status}, userId: ${updated?.userId}, error: ${updated?.lastError}`);
+      console.log(`  Updated status: ${updated?.status}, userId: ${updated?.registeredUserId}, error: ${updated?.lastError}`);
     } catch (err) {
       console.error(`  ✗ Error registering ${imp.id}:`, err);
     }

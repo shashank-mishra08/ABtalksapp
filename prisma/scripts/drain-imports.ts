@@ -17,7 +17,7 @@ async function main() {
       normalizedEmail: true,
       status: true,
       registerRequested: true,
-      userId: true,
+      registeredUserId: true,
     },
     orderBy: { createdAt: "desc" },
     take: 5,
@@ -26,7 +26,7 @@ async function main() {
   console.log("\nRecent Resume Imports:");
   for (const imp of imports) {
     console.log(
-      `  • [${imp.status}] ${imp.normalizedEmail ?? "no email"} - ${imp.originalFilename} (registerRequested: ${imp.registerRequested}, userId: ${imp.userId ?? "none"})`,
+      `  • [${imp.status}] ${imp.normalizedEmail ?? "no email"} - ${imp.originalFilename} (registerRequested: ${imp.registerRequested}, userId: ${imp.registeredUserId ?? "none"})`,
     );
   }
 }
