@@ -20,6 +20,8 @@ type DashboardShellProps = {
   children: React.ReactNode;
   /** When true, desktop sidebar can collapse to icon-only (Claude routes). Default false. */
   collapsible?: boolean;
+  /** With `collapsible`: always open collapsed, ignoring the stored preference (course reader). */
+  startCollapsed?: boolean;
   /** Hide hub section anchors in the header. Default true. Ignored when sectionNavItems is set. */
   showSectionNav?: boolean;
   /** Custom header section links (Claude Days / FAQs / …). */
@@ -35,6 +37,7 @@ export function DashboardShell({
   isAdmin,
   children,
   collapsible = false,
+  startCollapsed = false,
   showSectionNav = true,
   sectionNavItems,
   contentClassName,
@@ -49,7 +52,7 @@ export function DashboardShell({
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   useEffect(() => {
-    if (!collapsible) return;
+    if (!collapsible || startCollapsed) return;
     try {
       const stored = window.localStorage.getItem(CLAUDE_SIDEBAR_COLLAPSED_KEY);
       if (stored === "0") setCollapsed(false);
@@ -57,7 +60,7 @@ export function DashboardShell({
     } catch {
       // ignore
     }
-  }, [collapsible]);
+  }, [collapsible, startCollapsed]);
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {

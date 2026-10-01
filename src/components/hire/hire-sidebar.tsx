@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NavLink } from "@/components/shared/nav-link";
 import { signOutAction } from "@/app/actions/auth-actions";
 import { useHireAuth } from "@/components/hire/hire-auth-provider";
 import { useHireDesk } from "@/components/hire/hire-desk-context";
@@ -195,14 +196,14 @@ export function HireSidebar({
   return (
     <aside className="hire-side" aria-label="Hire navigation">
       <nav className="hire-side__nav" aria-label="Sections">
-        <Link
+        <NavLink
           href="/hire"
           className={cn("hire-side__item", pathname === "/hire" && "is-current")}
           aria-current={pathname === "/hire" ? "page" : undefined}
         >
           <House className="hire-side__icon" aria-hidden="true" />
           Home
-        </Link>
+        </NavLink>
 
         {/* DISCOVER — finding candidates. */}
         <p className="hire-side__group" id="hire-side-discover">
@@ -210,7 +211,7 @@ export function HireSidebar({
         </p>
         {/* The Projects/History page, not the contact-request tracker — the
             label and the destination now describe the same thing. */}
-        <Link
+        <NavLink
           href="/hire/projects"
           className={cn(
             "hire-side__item",
@@ -222,7 +223,7 @@ export function HireSidebar({
         >
           <FolderKanban className="hire-side__icon" aria-hidden="true" />
           Search history
-        </Link>
+        </NavLink>
 
         {/* WORK — what the recruiter is running. Every destination here was
             previously a header pill; the header no longer navigates, so these
@@ -230,7 +231,7 @@ export function HireSidebar({
         {account && (
           <>
             <p className="hire-side__group">Work</p>
-            <Link
+            <NavLink
               href="/hire/jobs"
               className={cn(
                 "hire-side__item",
@@ -242,8 +243,8 @@ export function HireSidebar({
             >
               <Briefcase className="hire-side__icon" aria-hidden="true" />
               Jobs
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/hire/assessments"
               className={cn(
                 "hire-side__item",
@@ -255,8 +256,8 @@ export function HireSidebar({
             >
               <ClipboardCheck className="hire-side__icon" aria-hidden="true" />
               Assessments
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/hire/pipeline"
               className={cn(
                 "hire-side__item",
@@ -268,8 +269,8 @@ export function HireSidebar({
             >
               <KanbanSquare className="hire-side__icon" aria-hidden="true" />
               Pipeline
-            </Link>
-            <Link
+            </NavLink>
+            <NavLink
               href="/hire/analytics"
               className={cn(
                 "hire-side__item",
@@ -281,11 +282,11 @@ export function HireSidebar({
             >
               <ChartColumn className="hire-side__icon" aria-hidden="true" />
               Analytics
-            </Link>
+            </NavLink>
 
             {/* COMMUNICATION */}
             <p className="hire-side__group">Communication</p>
-            <Link
+            <NavLink
               href="/hire/messages"
               className={cn(
                 "hire-side__item",
@@ -303,7 +304,7 @@ export function HireSidebar({
                   <span className="sr-only"> unread</span>
                 </span>
               )}
-            </Link>
+            </NavLink>
           </>
         )}
       </nav>
@@ -415,9 +416,9 @@ export function HireSidebar({
         <section className="hire-side__section" aria-label="Recent searches">
           <div className="hire-side__head">
             <h2 className="hire-side__kicker">Recent searches</h2>
-            <Link href={`/hire/${liveProject.id}`} className="hire-side__headlink">
+            <NavLink href={`/hire/${liveProject.id}`} className="hire-side__headlink">
               View all
-            </Link>
+            </NavLink>
           </div>
 
           {liveProject.sessions.length === 0 ? (
@@ -436,7 +437,7 @@ export function HireSidebar({
                 const active = s.id === liveProject.activeSessionId;
                 return (
                   <li key={s.id}>
-                    <Link
+                    <NavLink
                       href={`/hire/${liveProject.id}?session=${s.id}`}
                       className={cn("hire-side__row", active && "is-current")}
                       aria-current={active ? "page" : undefined}
@@ -454,7 +455,7 @@ export function HireSidebar({
                           </span>
                         )}
                       </span>
-                    </Link>
+                    </NavLink>
                   </li>
                 );
               })}
@@ -499,7 +500,7 @@ export function HireSidebar({
               const active = p.id === openProjectId;
               return (
                 <li key={p.id} className="hire-side__projectli">
-                  <Link
+                  <NavLink
                     href={`/hire/${p.id}`}
                     className={cn("hire-side__row", active && "is-current")}
                     aria-current={active ? "page" : undefined}
@@ -513,7 +514,7 @@ export function HireSidebar({
                       className="size-3 text-primary fill-primary/30 shrink-0 ml-auto"
                       aria-label="Pinned project"
                     />
-                  </Link>
+                  </NavLink>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={
@@ -586,7 +587,7 @@ export function HireSidebar({
               const active = p.id === openProjectId;
               return (
                 <li key={p.id} className="hire-side__projectli">
-                  <Link
+                  <NavLink
                     href={`/hire/${p.id}`}
                     className={cn("hire-side__row", active && "is-current")}
                     aria-current={active ? "page" : undefined}
@@ -596,7 +597,7 @@ export function HireSidebar({
                     <span className="hire-side__rowtext">
                       <span className="hire-side__rowname">{p.label}</span>
                     </span>
-                  </Link>
+                  </NavLink>
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       render={
@@ -704,7 +705,7 @@ export function HireSidebar({
             row here as well as in the account menu below: the menu is where you
             look for "my account", this is where you look for "the product". */}
         {account && (
-          <Link
+          <NavLink
             href="/hire/settings"
             className={cn(
               "hire-side__item",
@@ -716,12 +717,12 @@ export function HireSidebar({
           >
             <Settings className="hire-side__icon" aria-hidden="true" />
             Settings
-          </Link>
+          </NavLink>
         )}
-        <Link href="/contact" className="hire-side__item hire-side__item--quiet">
+        <NavLink href="/contact" className="hire-side__item hire-side__item--quiet">
           <LifeBuoy className="hire-side__icon" aria-hidden="true" />
           Support
-        </Link>
+        </NavLink>
 
         {/* Recruiter ------------------------------------------------------ */}
         {account ? (

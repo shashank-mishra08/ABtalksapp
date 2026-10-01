@@ -291,6 +291,90 @@ async function main() {
     assert(two.kind === "conflict" && two.candidates.length === 2, "conflict");
   });
 
+  /* ─── Field verification against the PDF (#695) ────────────────────────── */
+  const verify = await import("@/features/resume/verify");
+  const evidence = {
+    text: [
+      "Suyash Gupta",
+      "+91 7081441088 # contactsuyashgupta@gmail.com LinkedIn GitHub",
+      "Education ABES Engineering College B.Tech (Information Technology ) Nov 2022 – Present",
+      "Monocept Ltd - SWE Intern Feb 2026 - June 2026",
+      "◦ Built REST APIs, integrated databases, and collaborated in Agile sprints to deliver",
+      "scalable business solutions",
+      "Languages: Python, Java, JavaScript Technologies: Spring Boot, Next.js, PostgreSQL",
+      "Maturity Level Assess-",
+      "ments, reading code",
+    ].join("\n"),
+    links: [
+      "mailto:contactsuyashgupta@gmail.com",
+      "https://www.linkedin.com/in/isuyashgupta/",
+      "https://github.com/manuVrtti",
+    ],
+  };
+  const withFields = (over: Partial<typeof fixture>) => ({
+    ...fixture,
+    candidateName: null, email: null, phone: null, location: null, linkedin: null, github: null,
+    portfolio: null, website: null, skills: [], technicalSkills: [], softSkills: [],
+    programmingLanguages: [], frameworks: [], databases: [], cloudPlatforms: [], tools: [],
+    certifications: [], achievements: [], languages: [], projects: [], experience: [],
+    education: [], internships: [],
+    ...over,
+  });
+
+  await suite("verify: a misread email is corrected from the PDF (#695)", () => {
+    const { data, report } = verify.verifyParsedResume(withFields({ email: "contactsuysahgupta@gmail.com" }), evidence);
+    assert(data.email === "contactsuyashgupta@gmail.com", `email: ${data.email}`);
+    assert(report.unverified.length === 0, report.unverified.join());
+    const all = verify.reconcileEmails(["contactsuysahgupta@gmail.com"], evidence);
+    assert(resolveImportEmail(data.email, all).kind === "single", `no false conflict: ${all.join()}`);
+  });
+
+  await suite("verify: exact fields pass, typos snap to the document's spelling", () => {
+    const { data, report } = verify.verifyParsedResume(
+      withFields({
+        candidateName: "Suyash Gutpa",
+        phone: "+91 7081441088",
+        linkedin: "https://linkedin.com/in/isuyashgupta",
+        github: "https://github.com/manuVrtt",
+        programmingLanguages: ["Pyhton", "JavaScript"],
+        frameworks: ["Spring Boot", "NextJS"],
+        education: [{ degree: "B.Tech", branch: "Information Technology", institution: "ABES Engineering Colege", year: "Nov 2022 – Present", cgpa: null }],
+        experience: [{
+          title: "SWE Intern", company: "Monocept Ltd", employmentType: null, duration: "Feb 2026 - June 2026",
+          responsibilities: ["Built REST APIs, integrated databses, and collaborated in Agile sprints to deliver scalable business solutions"],
+          achievements: [], technologies: [],
+        }],
+        skills: ["Maturity Level Assessments"],
+      }),
+      evidence,
+    );
+    assert(report.unverified.length === 0, `unverified: ${report.unverified.join()}`);
+    assert(data.candidateName === "Suyash Gupta", `name: ${data.candidateName}`);
+    assert(data.programmingLanguages[0] === "Python", `lang: ${data.programmingLanguages[0]}`);
+    assert(data.education[0]!.institution === "ABES Engineering College", "institution snapped");
+    assert(data.github === "https://github.com/manuVrtti", `github: ${data.github}`);
+    assert(data.experience[0]!.responsibilities[0]!.includes("databases"), "bullet snapped");
+    assert(data.frameworks[1] === "NextJS", "a spacing/punctuation variant is not rewritten");
+  });
+
+  await suite("verify: invented fields are flagged, not silently kept", () => {
+    const { report } = verify.verifyParsedResume(
+      withFields({ phone: "+91 9999999999", softSkills: ["Leadership"], github: "https://github.com/someone-else" }),
+      evidence,
+    );
+    for (const f of ["phone", "softSkills[0]", "github"]) assert(report.unverified.includes(f), `${f} flagged`);
+  });
+
+  await suite("verify: a scan with no text layer is flagged as a whole", () => {
+    const { report } = verify.verifyParsedResume(withFields({ candidateName: "Asha" }), { text: "", links: [] });
+    assert(!report.hadText && report.unverified.length === 1, report.unverified.join());
+  });
+
+  await suite("reconcileEmails: a genuinely different second address still conflicts", () => {
+    const all = verify.reconcileEmails(["work@corp.com"], evidence);
+    assert(resolveImportEmail("contactsuyashgupta@gmail.com", all).kind === "conflict", all.join());
+  });
+
   /* ─── T6 ───────────────────────────────────────────────────────────────── */
   console.log("\nT6 — outcomes of a parse");
 
@@ -312,10 +396,11 @@ async function main() {
       },
     };
   }
-  const okResult = (data = fixture, emails: string[] = []) => ({
+  const okResult = (data = fixture, emails: string[] = [], unverified: string[] = []) => ({
     ok: true as const,
     data,
     emails,
+    verification: { corrections: [], unverified, hadText: true },
     model: "gpt-4.1-mini",
     usage: { prompt: 1, completion: 1 },
     costMicroUsd: 1,
@@ -326,6 +411,12 @@ async function main() {
     const { log, deps } = outcomeDeps();
     await worker.completeImport({ id: "i" }, okResult(fixture, [fixture.email ?? ""]), deps as never);
     assert(log[0] === `parsed:${fixture.email}`, log.join());
+  });
+
+  await suite("unverified fields → NEEDS_REVIEW, email kept as the only candidate", async () => {
+    const r = outcomeDeps();
+    await worker.completeImport({ id: "i" }, okResult(fixture, [fixture.email ?? ""], ["phone"]), r.deps as never);
+    assert(r.log[0] === "review:1", r.log.join());
   });
 
   await suite("no email → NEEDS_REVIEW; two emails → NEEDS_REVIEW with both candidates", async () => {

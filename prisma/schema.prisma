@@ -2284,7 +2284,12 @@ model UserRoleAssignment {
   user      User  @relation("RoleSubject", fields: [userId], references: [id], onDelete: Cascade)
   grantedBy User? @relation("RoleGranter", fields: [grantedByUserId], references: [id], onDelete: SetNull)
 
-  // SQL: CREATE UNIQUE INDEX ... ON "UserRoleAssignment"(userId, role, scopeType, COALESCE(scopeId,'')) WHERE "revokedAt" IS NULL;
+  // Partial unique index, which Prisma cannot express: one live grant per
+  // (userId, role, scopeType, scopeId). Created by migration
+  // 20261001120000_role_assignment_active_unique as
+  // "role_assignment_active_unique" — it is a real migration as of plan 169,
+  // no longer hand-applied SQL. Liveness is `revokedAt IS NULL`; never edit
+  // `role` to revoke a grant.
   @@index([userId, revokedAt])
   @@index([role, scopeType, scopeId])
   @@index([grantedByUserId])

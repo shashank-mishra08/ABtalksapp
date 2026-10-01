@@ -18,7 +18,10 @@ import {
   buildHubSearchIndex,
   type HubSearchItem,
 } from "@/features/dashboard/hub-search-index";
-import type { HubEnrollment } from "@/features/dashboard/get-hub-data";
+import {
+  toHubEnrollment,
+  type HubEnrollment,
+} from "@/features/dashboard/get-hub-data";
 
 async function guestCatalog(): Promise<HubSearchItem[]> {
   return buildHubSearchIndex({
@@ -67,14 +70,7 @@ export const getSiteSearchItems = cache(async (): Promise<HubSearchItem[]> => {
   const enrollments: HubEnrollment[] = [
     ...joined.filter((r) => r.status === "ACTIVE"),
     ...joined.filter((r) => r.status === "COMPLETED"),
-  ].map((r) => ({
-    id: r.id,
-    domain: r.domain,
-    status: r.status as "ACTIVE" | "COMPLETED",
-    challengeTitle: r.challengeTitle,
-    daysCompleted: r.daysCompleted,
-    currentStreak: r.currentStreak,
-  }));
+  ].map(toHubEnrollment);
 
   return buildHubSearchIndex({
     workshopEvents: await listPublicEvents(),

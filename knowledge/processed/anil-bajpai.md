@@ -30,8 +30,7 @@ The line "Built by Anil Bajpai's ABTalks community" appears on ABTalks'
 auth pages.
 
 ## Other team member surfaced publicly
-
-Sarthak Gupta is publicly listed as a Founding Member of ABTalks.
+Sarthak Gupta, Sohail Khan, Suyash Gupta and Shivansh Rai are listed as other founding members.
 
 For questions about ABTalks programs, events, or participation,
 use the official ABTalks contact channel rather than contacting

@@ -12,6 +12,7 @@ import { Roadmaps } from "@/components/dashboard-hub/roadmaps";
 import { EventsSection } from "@/components/dashboard-hub/events-section";
 import { listPublicEvents } from "@/repositories/workshop";
 import { FaqSection } from "@/components/dashboard-hub/faq-section";
+import { LearnCourses } from "@/components/dashboard-hub/learn-courses";
 import { HUB_CARD_HOVER_CLASS } from "@/components/dashboard-hub/nav-items";
 import { getHubData } from "@/features/dashboard/get-hub-data";
 import { registrationRedirect } from "@/features/registration/registration-gate";
@@ -126,6 +127,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       ) : null}
 
       <ContinueJourney enrollments={data.enrollments} />
+      <LearnCourses />
       <CareerGuidance
         userId={session.user.id}
         istDay={guidance.istDay}

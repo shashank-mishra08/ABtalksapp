@@ -18,6 +18,11 @@ export const ACCOUNT_NOTICE_HEADERS: Record<string, string> = {
   Priority: "urgent",
 };
 
+const SERVICE_EVENT_TYPES = new Set([
+  "account.admin_update",
+  "auth.password_reset",
+]);
+
 const MAX_ATTEMPTS = 5;
 const FAILURE_REASON_MAX_LENGTH = 1000;
 const SENDING_TIMEOUT_MS = 10 * 60 * 1000;
@@ -87,6 +92,10 @@ export async function processEmailDelivery(
     // activity — transactional, not a mailing. Dropping `Precedence: bulk`
     // keeps it out of Gmail's Promotions tab.
     bulk: false,
+    // Preference-controlled notices (job alerts, profile views, application
+    // updates) say how to turn them off, so they carry List-Unsubscribe.
+    // Account and security notices cannot be turned off and must not.
+    listUnsubscribe: !SERVICE_EVENT_TYPES.has(notification.eventType),
     kind: notification.eventType,
     // Account service notices get the high-priority headers (only these).
     ...(notification.eventType === "account.admin_update"
